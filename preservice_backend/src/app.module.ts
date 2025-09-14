@@ -5,6 +5,10 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EventsModule } from './events/events.module';
+import { ServeurModule } from './serveur/serveur.module';
+import { UsersModule } from './users/users.module';
+import { DemandesModule } from './demandes/demandes.module';
+import { AvisModule } from './avis/avis.module';
 
 @Module({
   imports: [
@@ -13,7 +17,11 @@ import { EventsModule } from './events/events.module';
       serverSelectionTimeoutMS: 2000,
       maxPoolSize: 5
     }),
-    EventsModule
+    EventsModule,
+    ServeurModule,
+    UsersModule,
+    DemandesModule,
+    AvisModule
   ],
   controllers: [AppController],
   providers: [AppService],
