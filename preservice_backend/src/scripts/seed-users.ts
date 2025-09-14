@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     adresse: { type: String, trim: true },
     mot_passe: { type: String, required: true, select: false },
     isActive: { type: Boolean, default: true },
+    role: { type: String, enum: ['user','admin','superadmin'], default: 'user' },
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
@@ -28,7 +29,7 @@ async function run() {
         { nom: 'Karim Gharbi', email: 'karim.gharbi@example.com', numero_tel: '+21620000003', adresse: 'Sousse', mot_passe: pwd, role: 'admin' },
         { nom: 'Syrine Ben Ali', email: 'syrine.benali@example.com', numero_tel: '+21620000004', adresse: 'Nabeul', mot_passe: pwd, role: 'user' },
         { nom: 'Omar Haddad', email: 'omar.haddad@example.com', numero_tel: '+21620000005', adresse: 'Monastir', mot_passe: pwd, role: 'user' },
-    ];
+    ]; 
 
     // upsert par email
     for (const d of docs) {

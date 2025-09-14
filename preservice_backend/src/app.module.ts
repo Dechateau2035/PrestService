@@ -9,14 +9,19 @@ import { ServeurModule } from './serveur/serveur.module';
 import { UsersModule } from './users/users.module';
 import { DemandesModule } from './demandes/demandes.module';
 import { AvisModule } from './avis/avis.module';
+import { AuthModule } from './auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './common/guards/roles.guard';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.MONGO_URI || "mongodb+srv://nelagency2025_db_user:TIRbjEVm4g8wFQwu@cluster0.qeamgwr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",{
+    MongooseModule.forRoot((process.env.MONGO_URI)!, {
       serverSelectionTimeoutMS: 2000,
       maxPoolSize: 5
     }),
+    AuthModule,
     EventsModule,
     ServeurModule,
     UsersModule,
@@ -24,6 +29,11 @@ import { AvisModule } from './avis/avis.module';
     AvisModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
-export class AppModule {}
+
+export class AppModule { }

@@ -28,7 +28,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('PrestService API')
     .setVersion('1.0.0')
-    .addTag('Events')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
