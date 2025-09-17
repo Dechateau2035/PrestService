@@ -4,12 +4,21 @@ import * as bcrypt from 'bcryptjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument, UserSchema, UserRole } from 'src/users/entities/user.entity';
+import { RefreshTokensService } from './refresh-tokens.service';
+
+const ACCESS_SECRET = process.env.JWT_SECRET;
+const ACCESS_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
+
+if (!ACCESS_SECRET) {
+  throw new Error('Missing JWT_SECRET (access token secret)');
+}
 
 @Injectable()
 export class AuthService {
     constructor(
         private jwt: JwtService,
         @InjectModel(User.name) private users: Model<UserDocument>,
+        private readonly rts: RefreshTokensService,
     ) { }
 
     private signToken(user: any) {
@@ -22,8 +31,8 @@ export class AuthService {
         };
         return {
             access_token: this.jwt.sign(payload, {
-                secret: process.env.JWT_SECRET,
-                expiresIn: process.env.JWT_EXPIRES_IN,
+                secret: ACCESS_SECRET,
+                expiresIn: ACCESS_EXPIRES_IN,
             }),
             user: payload,
         };
@@ -45,19 +54,32 @@ export class AuthService {
         return user;
     }
 
-    async login(email: string, mot_passe: string) {
+    async login(email: string, mot_passe: string, meta?: { ua?: string; ip?: string }) {
         const user = await this.validateUser(email, mot_passe);
-        return this.signToken(user);
+        const at = this.signToken(user);
+        const rt = await this.rts.generate(at.user.sub, meta);
+        return { ...at, refresh_token: rt.token, refresh_expires_at: rt.expiresAt };
     }
 
     async register(data: {
         nom: string; email: string; numero_tel: string; adresse?: string; mot_passe: string; role?: UserRole;
-    }) {
+    }, meta?: { ua?: string; ip?: string }) {
         const exists = await this.users.exists({ email: data.email });
         if (exists) throw new UnauthorizedException('Email déjà utilisé');
         const created = new this.users(data as any);
         await created.save();
         const user = created.toJSON();
-        return this.signToken(user);
+        const at = this.signToken(user);
+        const rt = await this.rts.generate(at.user.sub, meta);
+        return { ...at, refresh_expires_at: rt.expiresAt };
+    }
+
+    async refresh(oldRefreshToken: string, userIdHint?: string, meta?: { ua?: string; ip?: string }) {
+        const { newToken, userId, expiresAt, cookie } = await this.rts.verifyAndRotate(oldRefreshToken, userIdHint, meta);
+        // émettre un nouveau access token pour ce user
+        const userDoc = await this.users.findById(userId).lean();
+        if (!userDoc) throw new UnauthorizedException('Utilisateur introuvable');
+        const at = this.signToken(userDoc);
+        return { ...at, refresh_token: newToken, refresh_expires_at: expiresAt, cookie };
     }
 }
