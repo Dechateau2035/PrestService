@@ -6,6 +6,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { RefreshTokensService } from './refresh-tokens.service';
+import { ConfigService } from '@nestjs/config';
 
 class LoginDto {
     @ApiProperty() @IsEmail()
@@ -54,6 +55,7 @@ function getRefreshFromReq(req: any): string | null {
 @Controller('auth')
 export class AuthController {
     constructor(
+        private readonly configService: ConfigService,
         private readonly auth: AuthService,
         private readonly blacklist: TokenBlacklistService,
         private readonly rts: RefreshTokensService,
@@ -61,8 +63,8 @@ export class AuthController {
 
     // Petit helper pour poser correctement le cookie (cf. plus bas implémentation finale)
     private setRefreshCookie(res: Response, token: string, expiresAt: Date) {
-        const secure = String(process.env.COOKIE_SECURE).toLowerCase() === 'true';
-        const domain = process.env.COOKIE_DOMAIN || undefined;
+        const secure = String(this.configService.get('auth.cookieSecure')).toLowerCase() === 'true';
+        const domain = this.configService.get('auth.cookieDomain') || undefined;
         res.cookie('rt', token, {
             httpOnly: true,
             secure,
@@ -74,8 +76,8 @@ export class AuthController {
     }
 
     private clearRefreshCookie(res: Response) {
-        const secure = String(process.env.COOKIE_SECURE).toLowerCase() === 'true';
-        const domain = process.env.COOKIE_DOMAIN || undefined;
+        const secure = String(this.configService.get('auth.cookieSecure')).toLowerCase() === 'true';
+        const domain = this.configService.get('auth.cookieDomain') || undefined;
         res.clearCookie('rt', {
             httpOnly: true,
             secure,
@@ -191,7 +193,7 @@ export class AuthController {
         const sub = req?.user?.sub;
         if (sub) await this.rts.revokeAllForUser(sub);
         this.clearRefreshCookie(res);
-        
+
         return { success: true };
     }
 }

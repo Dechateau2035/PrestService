@@ -4,26 +4,28 @@ import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'crypto';
 import { Model, Types } from 'mongoose';
 import { RefreshToken, RefreshTokenDocument } from './schemas/refresh-token.schema';
+import { ConfigService } from '@nestjs/config';
+
 
 const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 
-const REFRESH_SECRET = process.env.REFRESH_JWT_SECRET
-const REFRESH_EXPIRES_IN = process.env.REFRESH_JWT_EXPIRES_IN
-
-if (!REFRESH_SECRET) {
-  throw new Error('Missing REFRESH_JWT_SECRET (refresh token secret)');
-}
-
 @Injectable()
 export class RefreshTokensService {
+    private readonly refreshSecret: string;
+    private readonly refreshExpiresIn: string;
+
     constructor(
+        private configService: ConfigService,
         private jwt: JwtService,
         @InjectModel(RefreshToken.name) private model: Model<RefreshTokenDocument>,
-    ) { }
+    ) {
+        this.refreshSecret = this.configService.get('auth.refreshToken')!
+        this.refreshExpiresIn = this.configService.get('auth.refreshIn')!
+    }
 
     private cookieOptions(expiresAt: Date) {
-        const secure = String(process.env.COOKIE_SECURE).toLowerCase() === 'true';
-        const domain = process.env.COOKIE_DOMAIN || undefined;
+        const secure = String(this.configService.get('auth.cookieSecure')).toLowerCase() === 'true';
+        const domain = this.configService.get('auth.cookieDomain') || undefined;
         return {
             httpOnly: true,
             secure,
@@ -36,7 +38,7 @@ export class RefreshTokensService {
 
     async generate(userId: string, meta?: { ua?: string; ip?: string }) {
         const payload = { sub: userId, typ: 'refresh' };
-        const token = this.jwt.sign(payload, { secret: REFRESH_SECRET, expiresIn: REFRESH_EXPIRES_IN });
+        const token = this.jwt.sign(payload, { secret: this.refreshSecret, expiresIn: this.refreshExpiresIn });
         const decoded: any = this.jwt.decode(token);
         const exp = decoded?.exp as number;
         if (!exp) throw new Error('No exp in refresh token');
@@ -57,7 +59,7 @@ export class RefreshTokensService {
     async verifyAndRotate(oldToken: string, userIdHint?: string, meta?: { ua?: string; ip?: string }) {
         let payload: any;
         try {
-            payload = this.jwt.verify(oldToken, { secret: REFRESH_SECRET });
+            payload = this.jwt.verify(oldToken, { secret: this.refreshSecret });
         } catch {
             throw new UnauthorizedException('Refresh token invalide/expiré');
         }

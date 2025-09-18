@@ -5,17 +5,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument, UserSchema, UserRole } from 'src/users/entities/user.entity';
 import { RefreshTokensService } from './refresh-tokens.service';
-
-const ACCESS_SECRET = process.env.JWT_SECRET;
-const ACCESS_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
-
-if (!ACCESS_SECRET) {
-  throw new Error('Missing JWT_SECRET (access token secret)');
-}
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
     constructor(
+        private configService: ConfigService,
         private jwt: JwtService,
         @InjectModel(User.name) private users: Model<UserDocument>,
         private readonly rts: RefreshTokensService,
@@ -29,6 +24,8 @@ export class AuthService {
             nom: user.nom,
             isActive: user.isActive,
         };
+        const ACCESS_SECRET = this.configService.get('auth.accessToken')
+        const ACCESS_EXPIRES_IN = this.configService.get('auth.accessIn')
         return {
             access_token: this.jwt.sign(payload, {
                 secret: ACCESS_SECRET,

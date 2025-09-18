@@ -13,10 +13,14 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/guards/roles.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import configuration from 'config/configuration';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env', load: [configuration]
+    }),
     MongooseModule.forRoot((process.env.MONGO_URI)!, {
       serverSelectionTimeoutMS: 2000,
       maxPoolSize: 5

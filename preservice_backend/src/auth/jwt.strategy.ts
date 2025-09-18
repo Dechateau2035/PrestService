@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { ConfigService } from '@nestjs/config';
 
 function getBearer(req: any): string | null {
     const h = req?.headers?.authorization || '';
@@ -11,10 +12,14 @@ function getBearer(req: any): string | null {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(private blacklist: TokenBlacklistService) {
+    private readonly accessSecret: string;
+    constructor(
+        private configService: ConfigService,
+        private blacklist: TokenBlacklistService,
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            secretOrKey: process.env.JWT_SECRET,
+            secretOrKey: configService.get('auth.accessToken'),
             ignoreExpiration: false,
             PassportStrategy: true,
         });
@@ -27,7 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // Refus si black-listé
         const isRevoked = await this.blacklist.has(token);
         if (isRevoked) throw new UnauthorizedException('Token révoqué');
-        
+
         return payload; // sera injecté dans req.user
     }
 }
