@@ -5,8 +5,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export type ServeurDocument = Serveur & Document;
 
 export enum ServeurStatus {
-    disponible = 'Disponible',
-    occupe = 'Occupé',
+    disponible = 'disponible',
+    occupe = 'occupe',
 }
 
 @Schema({ timestamps: true })

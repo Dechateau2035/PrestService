@@ -98,7 +98,7 @@ export class AuthController {
     @ApiBody({
         type: LoginDto,
         examples: {
-            default: { value: { email: 'nadia@example.com', mot_passe: 'Passw0rd!' } }
+            default: { value: { email: 'ali.bensalem@example.com', mot_passe: 'Passw0rd!' } }
         }
     })
     @ApiOkResponse({ description: 'Authentification réussie (JWT retourné).' })

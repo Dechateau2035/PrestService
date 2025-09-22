@@ -37,7 +37,7 @@ export class UsersController {
     }
   })
   @ApiCreatedResponse({ description: 'Utilisateur créé.' })
-  @ApiUnauthorizedResponse({ description: 'Non autorisé.' })
+  @ApiUnauthorizedResponse({ description: 'Non autorisé.' }) 
   @Roles('admin', 'superadmin')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
